@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediCare+ | Patient Portal</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="animate-fade-in">
+
+  <!-- Navbar Hook -->
+  <div id="navbar-container"></div>
+
+  <div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="dashboard-sidebar">
+      <div class="dashboard-sidebar-profile">
+        <div id="user-avatar" class="profile-avatar">J</div>
+        <h3 id="user-name" style="font-size: 1.1rem;">Jane Doe</h3>
+        <p id="user-email" style="font-size: 0.8rem; color: var(--text-muted);">patient@medicare.com</p>
+        <span class="profile-role-tag">Patient Profile</span>
+      </div>
+
+      <nav class="dashboard-nav">
+        <button class="dashboard-nav-item active" onclick="switchTab('overview')">❤️ Overview</button>
+        <button class="dashboard-nav-item" onclick="switchTab('appointments')">📋 Consultations (<span id="count-apps">0</span>)</button>
+        <button class="dashboard-nav-item" onclick="switchTab('profile')">👤 Medical Profile</button>
+        <button class="dashboard-nav-item" onclick="switchTab('family')">👥 Family Members (<span id="count-family">0</span>)</button>
+        <button class="dashboard-nav-item" onclick="switchTab('documents')">📄 Lab Reports (<span id="count-reports">0</span>)</button>
+        <button class="dashboard-nav-item" onclick="switchTab('vaccinations')">💉 Vaccinations</button>
+      </nav>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="dashboard-content">
+      <!-- Alerts Box -->
+      <div id="tab-alerts"></div>
+
+      <!-- Tab Content Panels -->
+      <div id="panel-overview" class="tab-panel"></div>
+      <div id="panel-appointments" class="tab-panel" style="display: none;"></div>
+      <div id="panel-profile" class="tab-panel" style="display: none;"></div>
+      <div id="panel-family" class="tab-panel" style="display: none;"></div>
+      <div id="panel-documents" class="tab-panel" style="display: none;"></div>
+      <div id="panel-vaccinations" class="tab-panel" style="display: none;"></div>
+    </main>
+  </div>
+
+  <!-- Video Call Modal -->
+  <div id="call-modal" class="modal-overlay" style="display: none; padding: 0;">
+    <div class="modal-card" style="max-width: 100%; width: 100vw; height: 100vh; border-radius: 0; display: grid; grid-template-rows: 60px 1fr;">
+      <div class="modal-header" style="background-color: #0f172a; border-bottom: 1px solid #1e293b; padding: 0 24px;">
+        <h3 id="call-doctor-title" style="color: white;">Medicare Virtual Consultation</h3>
+        <button id="end-call-btn" class="btn btn-danger" style="padding: 6px 16px; font-size: 0.85rem; margin-top: 0; cursor: pointer;">
+          End Session Room
+        </button>
+      </div>
+
+      <div class="consultation-grid" style="height: 100%; padding: 20px; background: #0b0f19;">
+        <!-- Left Feed -->
+        <div class="video-screen">
+          <div class="mock-video-feed">
+            <div class="profile-avatar" style="width: 90px; height: 90px; font-size: 2.5rem; margin: 0 auto 16px auto;">👨‍⚕️</div>
+            <h3 id="call-doctor-name">Doctor</h3>
+            <p style="font-size: 0.9rem; color: #94a3b8; marginTop: 6px;">Virtual Connection Active (Consultation Room)</p>
+          </div>
+          <div class="my-video-feed">👤 Jane (You)</div>
+          <div class="video-controls">
+            <button class="video-btn">🎙️</button>
+            <button class="video-btn">📹</button>
+            <button class="video-btn active" id="control-end-btn">📞</button>
+          </div>
+        </div>
+
+        <!-- Right Chat / Prescription -->
+        <div class="prescription-pad" style="display: flex; flex-direction: column; height: 100%;">
+          <h3 style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+            Clinic Chat & Prescriptions
+          </h3>
+          <div id="call-chat-box" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: var(--background); border-radius: var(--radius-md); margin-bottom: 16px;">
+            <!-- messages -->
+          </div>
+          <form id="call-chat-form" style="display: flex; gap: 8px;">
+            <input id="call-chat-input" type="text" placeholder="Type message to doctor..." class="form-control" style="margin: 0;" required />
+            <button type="submit" class="btn btn-primary">Send</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Hook -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script>
+    let activeTab = "overview";
+    let currentUser = null;
+    let callDoctor = "";
+
+    function switchTab(tabName) {
+      activeTab = tabName;
+      document.querySelectorAll(".dashboard-nav-item").forEach((btn, idx) => {
+        const tabs = ["overview", "appointments", "profile", "family", "documents", "vaccinations"];
+        if (tabs[idx] === tabName) btn.classList.add("active");
+        else btn.classList.remove("active");
+      });
+
+      document.querySelectorAll(".tab-panel").forEach(panel => {
+        panel.style.display = "none";
+      });
+      document.getElementById(`panel-${tabName}`).style.display = "block";
+      renderTabContent(tabName);
+    }
+
+    function renderTabContent(tabName) {
+      currentUser = db.getCurrentUser();
+      if (!currentUser) return;
+
+      const myApps = db.getAppointments().filter(a => a.patientEmail === currentUser.email);
+      const myReminders = db.getReminders().filter(r => r.patientEmail === currentUser.email);
+      const myFamily = db.getFamily().filter(f => f.patientEmail === currentUser.email);
+      const myReports = db.getReports().filter(r => r.patientEmail === currentUser.email);
+      const myVaccines = db.getVaccines().filter(v => v.patientEmail === currentUser.email);
+
+      // Counts
+      document.getElementById("count-apps").textContent = myApps.length;
+      document.getElementById("count-family").textContent = myFamily.length;
+      document.getElementById("count-reports").textContent = myReports.length;
+
+      // Alerts
+      const nextApp = myApps.find(a => a.status === "Approved");
+      const alertsContainer = document.getElementById("tab-alerts");
+      if (nextApp) {
+        alertsContainer.innerHTML = `
+          <div class="alert-box success" style="justify-content: space-between; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span>📹</span>
+              <div>
+                <strong>Upcoming Consultation on ${nextApp.date} at ${nextApp.time}</strong>
+                <p style="font-size: 0.85rem; opacity: 0.9;">
+                  Virtual appointment with ${nextApp.doctorName}. You can enter virtual clinic now.
+                </p>
+              </div>
+            </div>
+            <button onclick="startCall('${nextApp.doctorName}')" class="btn btn-success" style="padding: 6px 12px; font-size: 0.85rem; margin-top: 0;">
+              Join Clinic Room
+            </button>
+          </div>
+        `;
+      } else {
+        alertsContainer.innerHTML = "";
+      }
+
+      if (tabName === "overview") {
+        let reminderItems = "";
+        myReminders.forEach(rem => {
+          reminderItems += `
+            <div class="med-checklist-item ${rem.completed ? "completed" : ""}">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button onclick="toggleReminder(${rem.id})" style="width: 24px; height: 24px; border-radius: 50%; padding: 0; background: ${rem.completed ? "var(--success)" : "transparent"}; border: 2px solid ${rem.completed ? "var(--success)" : "var(--border)"}; color: white; display: flex; align-items: center; justify-content: center; margin-top: 0; cursor: pointer;">
+                  ${rem.completed ? "✓" : ""}
+                </button>
+                <div>
+                  <strong>${rem.name}</strong>
+                  <p style="font-size: 0.8rem; color: var(--text-muted);">${rem.dosage} - scheduled at ${rem.time}</p>
+                </div>
+              </div>
+              <button onclick="deleteReminder(${rem.id})" style="background: transparent; color: var(--text-muted); padding: 4px; margin-top: 0; cursor: pointer;">🗑️</button>
+            </div>
+          `;
+        });
+
+        let conditionsList = "";
+        currentUser.history.forEach(h => {
+          conditionsList += `<span class="badge approved" style="text-transform: none; margin-right: 4px; margin-bottom: 4px;">${h}</span>`;
+        });
+
+        document.getElementById("panel-overview").innerHTML = `
+          <h2 style="margin-bottom: 20px;">Patient Dashboard Overview</h2>
+          <div class="metrics-row">
+            <div class="metric-card">
+              <div class="health-score-container" style="--score: ${currentUser.healthScore}">
+                <div class="health-score-wheel">
+                  <span class="health-score-num">${currentUser.healthScore}</span>
+                </div>
+              </div>
+              <div>
+                <div class="metric-title">Health Score Index</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Based on medical profiles</div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon-box">📋</div>
+              <div>
+                <div class="metric-val">${myApps.length}</div>
+                <div class="metric-title">Consultations</div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon-box success">💊</div>
+              <div>
+                <div class="metric-val">${myReminders.filter(r => r.completed).length}/${myReminders.length}</div>
+                <div class="metric-title">Pills Taken Today</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; margin-top: 30px;">
+            <div class="card">
+              <h3 style="margin-bottom: 16px;">Daily Medicine Reminders</h3>
+              <div class="med-checklist">${reminderItems || `<p style="color: var(--text-muted); font-style: italic;">No medicine reminders set.</p>`}</div>
+              <form id="reminder-form" onsubmit="addReminder(event)" style="display: flex; gap: 10px; margin-top: 20px;">
+                <input id="rem-name" type="text" placeholder="Medicine Name" class="form-control" required style="margin: 0;" />
+                <input id="rem-dosage" type="text" placeholder="Dosage" class="form-control" style="width: 120px; margin: 0;" required />
+                <input id="rem-time" type="time" class="form-control" style="width: 110px; margin: 0;" required />
+                <button type="submit" class="btn btn-primary" style="padding: 10px 14px; margin-top: 0;">+</button>
+              </form>
+            </div>
+
+            <div class="card" style="height: fit-content;">
+              <h3 style="margin-bottom: 16px;">Key Health Stats</h3>
+              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Blood Group:</span>
+                  <strong>${currentUser.bloodGroup}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Age:</span>
+                  <strong>${currentUser.age} Years</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Gender:</span>
+                  <strong>${currentUser.gender}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Mobile Contact:</span>
+                  <strong>${currentUser.phone}</strong>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted); display: block; margin-bottom: 4px;">History / Conditions:</span>
+                  <div style="display: flex; flex-wrap: wrap;">${conditionsList || `<span style="font-style: italic; font-size: 0.85rem; color: var(--text-muted);">None declared</span>`}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } 
+      else if (tabName === "appointments") {
+        let appListItems = "";
+        myApps.forEach(app => {
+          let rxSection = "";
+          if (app.prescription) {
+            let medsTableRows = "";
+            app.prescription.medicines.forEach(m => {
+              medsTableRows += `
+                <tr>
+                  <td style="padding: 8px; font-size: 0.85rem;">${m.name}</td>
+                  <td style="padding: 8px; font-size: 0.85rem;">${m.dosage}</td>
+                  <td style="padding: 8px; font-size: 0.85rem;">${m.duration}</td>
+                </tr>
+              `;
+            });
+            rxSection = `
+              <div style="width: 100%; margin-top: 16px; padding: 16px; background: var(--success-light); border-radius: var(--radius-md); border: 1px solid hsl(142.1 76.2% 85%);">
+                <h4 style="color: var(--success); font-size: 0.95rem; margin-bottom: 8px;">🩺 Clinical Prescription Issued</h4>
+                <p style="font-size: 0.85rem;"><strong>Diagnosis:</strong> ${app.prescription.diagnosis}</p>
+                <table style="margin-top: 10px; background: white; border-radius: var(--radius-sm); overflow: hidden; width: 100%;">
+                  <thead>
+                    <tr>
+                      <th style="padding: 8px; background: var(--background);">Medicine</th>
+                      <th style="padding: 8px; background: var(--background);">Dosage</th>
+                      <th style="padding: 8px; background: var(--background);">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody>${medsTableRows}</tbody>
+                </table>
+              </div>
+            `;
+          }
+
+          appListItems += `
+            <div class="app-item" style="flex-wrap: wrap;">
+              <div class="app-info">
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                  <h4>${app.doctorName}</h4>
+                  <span class="badge pending" style="padding: 2px 8px; font-size: 0.7rem; background: var(--primary-light); color: var(--primary); text-transform: none;">
+                    ${app.relationship === "Self" ? "Self" : `Family: ${app.patientName}`}
+                  </span>
+                </div>
+                <p>Consultation Reason: ${app.reason}</p>
+                <p style="margin-top: 4px; font-size: 0.85rem; color: var(--text-muted);">
+                  Scheduled Slot: <strong>${app.date}</strong> at <strong>${app.time}</strong>
+                </p>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end; margin-left: auto;">
+                <span class="badge ${app.status.toLowerCase()}">${app.status}</span>
+                ${app.status === "Approved" ? `<button onclick="startCall('${app.doctorName}')" class="btn btn-success" style="padding: 6px 12px; font-size: 0.8rem; margin-top: 0;">📹 Join Clinic Room</button>` : ""}
+              </div>
+              ${rxSection}
+            </div>
+          `;
+        });
+
+        document.getElementById("panel-appointments").innerHTML = `
+          <h2 style="margin-bottom: 20px;">Consultation History & Schedules</h2>
+          <div class="app-list">${appListItems || `<p style="color: var(--text-muted); font-style: italic;">No consultation appointments found.</p>`}</div>
+        `;
+      } 
+      else if (tabName === "profile") {
+        let histTags = "";
+        currentUser.history.forEach(h => {
+          histTags += `<span class="badge approved" style="text-transform: none; margin-right: 4px; margin-bottom: 4px;">${h}</span>`;
+        });
+
+        document.getElementById("panel-profile").innerHTML = `
+          <div class="card" style="max-width: 600px;">
+            <h2 style="margin-bottom: 20px;">Secure Health Record Profile</h2>
+            <div id="profile-view-div">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                <div>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Full Name</span>
+                  <p style="font-weight: 600;">${currentUser.name}</p>
+                </div>
+                <div>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Email Account</span>
+                  <p style="font-weight: 600;">${currentUser.email}</p>
+                </div>
+                <div>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Age</span>
+                  <p style="font-weight: 600;">${currentUser.age} Years</p>
+                </div>
+                <div>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Blood Group</span>
+                  <p style="font-weight: 600;">${currentUser.bloodGroup}</p>
+                </div>
+                <div>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Phone Contact</span>
+                  <p style="font-weight: 600;">${currentUser.phone}</p>
+                </div>
+                <div>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Home Address</span>
+                  <p style="font-weight: 600;">${currentUser.address}</p>
+                </div>
+              </div>
+              <div style="margin-bottom: 20px;">
+                <span style="font-size: 0.8rem; color: var(--text-muted);">History / Allergies</span>
+                <div style="margin-top: 4px;">${histTags || `<span style="color: var(--text-muted); font-style: italic;">No prior conditions recorded.</span>`}</div>
+              </div>
+              <button onclick="toggleEditProfile(true)" class="btn btn-primary">Edit Record Info</button>
+            </div>
+            <div id="profile-edit-div" style="display: none;">
+              <form id="edit-profile-form" onsubmit="saveProfile(event)">
+                <div class="form-group">
+                  <label>Age (Years)</label>
+                  <input id="edit-age" type="number" class="form-control" value="${currentUser.age}" required />
+                </div>
+                <div class="form-group">
+                  <label>Mobile Number</label>
+                  <input id="edit-phone" type="text" class="form-control" value="${currentUser.phone}" required />
+                </div>
+                <div class="form-group">
+                  <label>Residential Address</label>
+                  <input id="edit-address" type="text" class="form-control" value="${currentUser.address}" />
+                </div>
+                <div class="form-group">
+                  <label>Prior Medical Conditions (Comma separated)</label>
+                  <input id="edit-history" type="text" class="form-control" value="${currentUser.history.join(", ")}" />
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                  <button type="button" onclick="toggleEditProfile(false)" class="btn btn-outline">Cancel</button>
+                  <button type="submit" class="btn btn-primary">Save Profile</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+      } 
+      else if (tabName === "family") {
+        let familyRows = "";
+        myFamily.forEach(fam => {
+          familyRows += `
+            <tr>
+              <td><strong>${fam.name}</strong></td>
+              <td>${fam.relation}</td>
+              <td>${fam.age} Yrs</td>
+              <td>${fam.bloodGroup}</td>
+            </tr>
+          `;
+        });
+
+        document.getElementById("panel-family").innerHTML = `
+          <h2 style="margin-bottom: 20px;">Family Health Profiles</h2>
+          <p class="section-subtitle" style="text-align: left; margin: 0 0 24px 0;">Add family members to book quick appointments for them.</p>
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px;">
+            <div class="card">
+              <h3>Family Registry</h3>
+              <div class="table-container" style="margin-top: 16px;">
+                ${myFamily.length > 0 ? `
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Relationship</th>
+                        <th>Age</th>
+                        <th>Blood Group</th>
+                      </tr>
+                    </thead>
+                    <tbody>${familyRows}</tbody>
+                  </table>
+                ` : `<p style="color: var(--text-muted); font-style: italic;">No family members registered.</p>`}
+              </div>
+            </div>
+
+            <div class="card" style="height: fit-content;">
+              <h3>Add Family Member</h3>
+              <form id="family-form" onsubmit="addFamily(event)" style="margin-top: 16px;">
+                <div class="form-group">
+                  <label>Member Name</label>
+                  <input id="fam-name" type="text" class="form-control" placeholder="e.g. Tommy Doe" required />
+                </div>
+                <div class="form-group">
+                  <label>Relationship</label>
+                  <select id="fam-relation" class="form-control">
+                    <option value="Son">Son</option>
+                    <option value="Daughter">Daughter</option>
+                    <option value="Spouse">Spouse</option>
+                    <option value="Parent">Parent</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                  <div class="form-group">
+                    <label>Age (Yrs)</label>
+                    <input id="fam-age" type="number" class="form-control" placeholder="e.g. 6" required />
+                  </div>
+                  <div class="form-group">
+                    <label>Blood Group</label>
+                    <select id="fam-blood" class="form-control">
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Register Member</button>
+              </form>
+            </div>
+          </div>
+        `;
+      } 
+      else if (tabName === "documents") {
+        let documentRows = "";
+        myReports.forEach(rep => {
+          documentRows += `
+            <tr>
+              <td><strong>${rep.name}</strong></td>
+              <td>${rep.date}</td>
+              <td>${rep.size}</td>
+              <td><button onclick="deleteReport(${rep.id})" style="background: transparent; border: none; color: var(--danger); cursor: pointer;">Delete</button></td>
+            </tr>
+          `;
+        });
+
+        document.getElementById("panel-documents").innerHTML = `
+          <div class="card">
+            <h2 style="margin-bottom: 12px;">Lab & Health Document Uploads</h2>
+            <p style="color: var(--text-muted); margin-bottom: 24px;">Upload lab reports, diagnostic scans, or prescriptions. Doctors can view uploaded files during consultations.</p>
+            <div style="border: 2px dashed var(--border); padding: 30px; border-radius: var(--radius-md); text-align: center; background: var(--background); margin-bottom: 30px; position: relative; cursor: pointer;">
+              <input type="file" onchange="uploadReport(event)" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" />
+              <span style="font-size: 2.5rem; display: block; margin-bottom: 12px;">📁</span>
+              <h3>Select diagnostic files to upload</h3>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">PDF, PNG, JPG accepted (Simulated Upload)</p>
+            </div>
+
+            <h3>Uploaded Clinical Files</h3>
+            <div class="table-container" style="margin-top: 16px;">
+              ${myReports.length > 0 ? `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Filename</th>
+                      <th>Date Uploaded</th>
+                      <th>File Size</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>${documentRows}</tbody>
+                </table>
+              ` : `<p style="color: var(--text-muted); font-style: italic;">No uploaded clinical files found.</p>`}
+            </div>
+          </div>
+        `;
+      } 
+      else if (tabName === "vaccinations") {
+        let vaccineRows = "";
+        myVaccines.forEach(vac => {
+          vaccineRows += `
+            <tr>
+              <td><strong>${vac.name}</strong></td>
+              <td>${vac.date}</td>
+              <td><span class="badge ${vac.status === 'Completed' ? 'completed' : 'pending'}">${vac.status}</span></td>
+              <td>${vac.type}</td>
+            </tr>
+          `;
+        });
+
+        document.getElementById("panel-vaccinations").innerHTML = `
+          <div class="card">
+            <h2 style="margin-bottom: 12px;">Vaccination Logs</h2>
+            <p style="color: var(--text-muted); margin-bottom: 24px;">Timelines and log checklist for immunizations.</p>
+            <div class="table-container">
+              ${myVaccines.length > 0 ? `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Vaccination Type</th>
+                      <th>Due/Completed Date</th>
+                      <th>Status Badge</th>
+                      <th>Profile Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>${vaccineRows}</tbody>
+                </table>
+              ` : `<p style="color: var(--text-muted); font-style: italic;">No vaccination files logged.</p>`}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Tab form bindings
+    function addReminder(e) {
+      e.preventDefault();
+      const name = document.getElementById("rem-name").value;
+      const dosage = document.getElementById("rem-dosage").value;
+      const time = document.getElementById("rem-time").value;
+
+      const newRem = {
+        id: Date.now(),
+        name,
+        dosage,
+        time,
+        completed: false,
+        patientEmail: currentUser.email
+      };
+
+      const rems = db.getReminders();
+      rems.push(newRem);
+      db.setReminders(rems);
+      renderTabContent("overview");
+    }
+
+    function toggleReminder(id) {
+      const rems = db.getReminders();
+      const rem = rems.find(r => r.id === id);
+      if (rem) {
+        rem.completed = !rem.completed;
+        db.setReminders(rems);
+        renderTabContent("overview");
+      }
+    }
+
+    function deleteReminder(id) {
+      const rems = db.getReminders().filter(r => r.id !== id);
+      db.setReminders(rems);
+      renderTabContent("overview");
+    }
+
+    function toggleEditProfile(edit) {
+      document.getElementById("profile-view-div").style.display = edit ? "none" : "block";
+      document.getElementById("profile-edit-div").style.display = edit ? "block" : "none";
+    }
+
+    function saveProfile(e) {
+      e.preventDefault();
+      const age = parseInt(document.getElementById("edit-age").value);
+      const phone = document.getElementById("edit-phone").value;
+      const address = document.getElementById("edit-address").value;
+      const historyStr = document.getElementById("edit-history").value;
+
+      currentUser.age = age;
+      currentUser.phone = phone;
+      currentUser.address = address;
+      currentUser.history = historyStr ? historyStr.split(",").map(i => i.trim()).filter(Boolean) : [];
+
+      // Update in users database
+      const users = db.getUsers();
+      const uIdx = users.findIndex(u => u.email === currentUser.email);
+      if (uIdx !== -1) {
+        users[uIdx] = currentUser;
+        db.setUsers(users);
+      }
+      db.setCurrentUser(currentUser);
+      renderTabContent("profile");
+    }
+
+    function addFamily(e) {
+      e.preventDefault();
+      const name = document.getElementById("fam-name").value;
+      const relation = document.getElementById("fam-relation").value;
+      const age = parseInt(document.getElementById("fam-age").value);
+      const blood = document.getElementById("fam-blood").value;
+
+      const newFam = {
+        id: Date.now(),
+        name,
+        relation,
+        age,
+        bloodGroup: blood,
+        patientEmail: currentUser.email
+      };
+
+      const familyList = db.getFamily();
+      familyList.push(newFam);
+      db.setFamily(familyList);
+      renderTabContent("family");
+    }
+
+    function uploadReport(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const sizeStr = (file.size / (1024 * 1024)).toFixed(1) + " MB";
+        const newRep = {
+          id: Date.now(),
+          name: file.name,
+          date: new Date().toISOString().split("T")[0],
+          size: sizeStr,
+          patientEmail: currentUser.email
+        };
+
+        const reports = db.getReports();
+        reports.unshift(newRep);
+        db.setReports(reports);
+        renderTabContent("documents");
+      }
+    }
+
+    function deleteReport(id) {
+      const reps = db.getReports().filter(r => r.id !== id);
+      db.setReports(reps);
+      renderTabContent("documents");
+    }
+
+    // Video Consultation room
+    function startCall(doctorName) {
+      callDoctor = doctorName;
+      document.getElementById("call-doctor-name").textContent = doctorName;
+      document.getElementById("call-doctor-title").textContent = `Medicare Virtual Consultation - ${doctorName}`;
+      
+      const chatBox = document.getElementById("call-chat-box");
+      chatBox.innerHTML = `
+        <div style="align-self: flex-start; background: white; color: var(--text-main); padding: 10px 14px; border-radius: var(--radius-md); max-width: 85%; font-size: 0.9rem; box-shadow: var(--shadow-sm);">
+          Hello! I am ${doctorName}. Thanks for joining this virtual consultation.
+        </div>
+      `;
+      document.getElementById("call-modal").style.display = "flex";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      currentUser = db.getCurrentUser();
+      if (!currentUser || currentUser.role !== "patient") {
+        window.location.href = "login.html";
+        return;
+      }
+
+      document.getElementById("user-avatar").textContent = currentUser.name.charAt(0);
+      document.getElementById("user-name").textContent = currentUser.name;
+      document.getElementById("user-email").textContent = currentUser.email;
+
+      switchTab("overview");
+
+      // Bind Video Consult controls
+      const closeRoom = () => {
+        document.getElementById("call-modal").style.display = "none";
+      };
+
+      document.getElementById("end-call-btn").addEventListener("click", closeRoom);
+      document.getElementById("control-end-btn").addEventListener("click", closeRoom);
+
+      // Chat send
+      document.getElementById("call-chat-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = document.getElementById("call-chat-input");
+        const msgVal = input.value.trim();
+        if (!msgVal) return;
+
+        const chatBox = document.getElementById("call-chat-box");
+        
+        // Patient msg
+        const patDiv = document.createElement("div");
+        patDiv.style.alignSelf = "flex-end";
+        patDiv.style.background = "var(--primary)";
+        patDiv.style.color = "white";
+        patDiv.style.padding = "10px 14px";
+        patDiv.style.borderRadius = "var(--radius-md)";
+        patDiv.style.maxWidth = "85%";
+        patDiv.style.fontSize = "0.9rem";
+        patDiv.style.boxShadow = "var(--shadow-sm)";
+        patDiv.textContent = msgVal;
+        chatBox.appendChild(patDiv);
+        input.value = "";
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // Doctor answer
+        setTimeout(() => {
+          const docDiv = document.createElement("div");
+          docDiv.style.alignSelf = "flex-start";
+          docDiv.style.background = "white";
+          docDiv.style.color = "var(--text-main)";
+          docDiv.style.padding = "10px 14px";
+          docDiv.style.borderRadius = "var(--radius-md)";
+          docDiv.style.maxWidth = "85%";
+          docDiv.style.fontSize = "0.9rem";
+          docDiv.style.boxShadow = "var(--shadow-sm)";
+          docDiv.textContent = "Got it. I've noted that down. Let me compile your medical report now.";
+          chatBox.appendChild(docDiv);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }, 1200);
+      });
+    });
+  </script>
+</body>
+</html>

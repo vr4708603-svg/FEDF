@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediCare+ | Admin Console</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="animate-fade-in">
+
+  <!-- Navbar Hook -->
+  <div id="navbar-container"></div>
+
+  <div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="dashboard-sidebar">
+      <div class="dashboard-sidebar-profile">
+        <div class="profile-avatar">🛡️</div>
+        <h3 style="font-size: 1.1rem;">System Admin</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">admin@medicare.com</p>
+        <span class="profile-role-tag">Super Admin</span>
+      </div>
+
+      <nav class="dashboard-nav">
+        <button class="dashboard-nav-item active" onclick="switchTab('analytics')">📊 Console Overview</button>
+        <button class="dashboard-nav-item" onclick="switchTab('doctors')">👨‍⚕️ Manage Doctors (<span id="count-docs">0</span>)</button>
+        <button class="dashboard-nav-item" onclick="switchTab('patients')">👥 Manage Patients (<span id="count-pats">0</span>)</button>
+        <button class="dashboard-nav-item" onclick="switchTab('appointments')">📋 Appointments (<span id="count-apps">0</span>)</button>
+        <button class="dashboard-nav-item" onclick="switchTab('sos')">🚨 SOS Broadcasts (<span id="count-sos">0</span>)</button>
+      </nav>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="dashboard-content">
+      <div id="panel-analytics" class="tab-panel"></div>
+      <div id="panel-doctors" class="tab-panel" style="display: none;"></div>
+      <div id="panel-patients" class="tab-panel" style="display: none;"></div>
+      <div id="panel-appointments" class="tab-panel" style="display: none;"></div>
+      <div id="panel-sos" class="tab-panel" style="display: none;"></div>
+    </main>
+  </div>
+
+  <!-- Footer Hook -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script>
+    let activeTab = "analytics";
+    let currentUser = null;
+
+    function switchTab(tabName) {
+      activeTab = tabName;
+      document.querySelectorAll(".dashboard-nav-item").forEach((btn, idx) => {
+        const tabs = ["analytics", "doctors", "patients", "appointments", "sos"];
+        if (tabs[idx] === tabName) btn.classList.add("active");
+        else btn.classList.remove("active");
+      });
+
+      document.querySelectorAll(".tab-panel").forEach(panel => {
+        panel.style.display = "none";
+      });
+      document.getElementById(`panel-${tabName}`).style.display = "block";
+      renderTabContent(tabName);
+    }
+
+    function renderTabContent(tabName) {
+      const doctors = db.getDoctors();
+      const users = db.getUsers();
+      const appointments = db.getAppointments();
+      const sosRequests = db.getSOS();
+
+      const patients = users.filter(u => u.role === "patient");
+
+      // Set counts in sidebar
+      document.getElementById("count-docs").textContent = doctors.length;
+      document.getElementById("count-pats").textContent = patients.length;
+      document.getElementById("count-apps").textContent = appointments.length;
+      document.getElementById("count-sos").textContent = sosRequests.length;
+
+      // Platform revenue
+      const totalRevenue = appointments
+        .filter((a) => a.status === "Completed")
+        .reduce((acc, a) => {
+          const doc = doctors.find((d) => d.id === a.doctorId);
+          return acc + (doc ? doc.fee : 0);
+        }, 0);
+
+      if (tabName === "analytics") {
+        document.getElementById("panel-analytics").innerHTML = `
+          <h2 style="margin-bottom: 20px;">Super Admin Analytics Console</h2>
+          <div class="metrics-row">
+            <div class="metric-card">
+              <div class="metric-icon-box">👨‍⚕️</div>
+              <div>
+                <div class="metric-val">${doctors.length}</div>
+                <div class="metric-title">Registered Doctors</div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon-box">👥</div>
+              <div>
+                <div class="metric-val">${patients.length}</div>
+                <div class="metric-title">Active Patients</div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon-box danger">🚨</div>
+              <div>
+                <div class="metric-val">${sosRequests.length}</div>
+                <div class="metric-title">Emergency SOS Alerts</div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon-box success">💵</div>
+              <div>
+                <div class="metric-val">₹${totalRevenue}</div>
+                <div class="metric-title">Platform Earnings</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; margin-top: 30px;">
+            <div class="card">
+              <h3>System Activity (Appointments)</h3>
+              <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                  <span>Pending Approval Reviews</span>
+                  <strong>${appointments.filter(a => a.status === "Pending").length}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                  <span>Approved Active Consults</span>
+                  <strong>${appointments.filter(a => a.status === "Approved").length}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                  <span>Completed Consultation Sessions</span>
+                  <strong>${appointments.filter(a => a.status === "Completed").length}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                  <span>Declined/Cancelled Bookings</span>
+                  <strong>${appointments.filter(a => a.status === "Rejected").length}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>AI Assistant Usage Statistics</h3>
+              <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                  <span>AI Chat Sessions Today:</span>
+                  <strong>28 sessions</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                  <span>Suggested Cardiology consults:</span>
+                  <strong>9 recommendations</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                  <span>Symptom screening accuracy:</span>
+                  <strong>94.2%</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } 
+      else if (tabName === "doctors") {
+        let docRows = "";
+        doctors.forEach(doc => {
+          docRows += `
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <img src="${doc.image}" alt="${doc.name}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;" />
+                  <div>
+                    <strong>${doc.name}</strong>
+                    <p style="font-size: 0.75rem; color: var(--text-muted);">${doc.email}</p>
+                  </div>
+                </div>
+              </td>
+              <td>${doc.specialization}</td>
+              <td>₹${doc.fee}</td>
+              <td>
+                <button onclick="removeDoctor(${doc.id})" style="background: transparent; border: none; color: var(--danger); cursor: pointer;">Remove</button>
+              </td>
+            </tr>
+          `;
+        });
+
+        document.getElementById("panel-doctors").innerHTML = `
+          <h2 style="margin-bottom: 20px;">Manage Licensed Doctors Directory</h2>
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px;">
+            <div class="card">
+              <h3>Doctor Directory</h3>
+              <div class="table-container" style="margin-top: 16px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Doctor</th>
+                      <th>Specialty</th>
+                      <th>Fee</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>${docRows}</tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card" style="height: fit-content;">
+              <h3>Add New Doctor</h3>
+              <div id="add-doc-success" class="alert-box success" style="padding: 10px; display: none;"></div>
+              <form id="add-doctor-form" onsubmit="createNewDoctor(event)" style="margin-top: 16px;">
+                <div class="form-group">
+                  <label>Doctor Name</label>
+                  <input id="new-doc-name" type="text" class="form-control" placeholder="e.g. Dr. Emily Taylor" required />
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                  <div class="form-group">
+                    <label>Specialization</label>
+                    <select id="new-doc-spec" class="form-control">
+                      <option value="Cardiologist">Cardiologist</option>
+                      <option value="Dermatologist">Dermatologist</option>
+                      <option value="Neurologist">Neurologist</option>
+                      <option value="Pediatrician">Pediatrician</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Experience (Yrs)</label>
+                    <input id="new-doc-exp" type="number" class="form-control" placeholder="e.g. 15" required />
+                  </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                  <div class="form-group">
+                    <label>Consult Fee (₹)</label>
+                    <input id="new-doc-fee" type="number" class="form-control" placeholder="e.g. 600" required />
+                  </div>
+                  <div class="form-group">
+                    <label>Doctor Email</label>
+                    <input id="new-doc-email" type="email" class="form-control" placeholder="e.g. emily@medicare.com" required />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Login Password</label>
+                  <input id="new-doc-pass" type="password" class="form-control" placeholder="••••••••" required />
+                </div>
+                <div class="form-group">
+                  <label>Avatar Photo URL (Optional)</label>
+                  <input id="new-doc-img" type="text" class="form-control" placeholder="Unsplash image URL..." />
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Add to Directory</button>
+              </form>
+            </div>
+          </div>
+        `;
+      } 
+      else if (tabName === "patients") {
+        let patRows = "";
+        patients.forEach(pat => {
+          patRows += `
+            <tr>
+              <td>
+                <div>
+                  <strong>${pat.name}</strong>
+                  <p style="font-size: 0.75rem; color: var(--text-muted);">${pat.email}</p>
+                </div>
+              </td>
+              <td>${pat.age} Yrs / ${pat.gender}</td>
+              <td>${pat.bloodGroup}</td>
+              <td><span class="badge ${pat.suspended ? 'rejected' : 'completed'}">${pat.suspended ? 'Suspended' : 'Active'}</span></td>
+              <td>
+                <button onclick="toggleSuspend('${pat.email}')" class="btn ${pat.suspended ? 'btn-success' : 'btn-outline'}" style="padding: 4px 12px; font-size: 0.8rem; color: ${pat.suspended ? 'white' : 'var(--danger)'}; border-color: ${pat.suspended ? 'none' : 'var(--danger)'}; margin-top:0; cursor:pointer;">
+                  ${pat.suspended ? "Activate" : "Suspend"}
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+
+        document.getElementById("panel-patients").innerHTML = `
+          <div class="card">
+            <h2>Patient Registry Database</h2>
+            <div class="table-container" style="margin-top: 16px;">
+              ${patients.length > 0 ? `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Patient Profile</th>
+                      <th>Age/Gender</th>
+                      <th>Blood Group</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>${patRows}</tbody>
+                </table>
+              ` : `<p style="color: var(--text-muted); font-style: italic;">No registered patients found.</p>`}
+            </div>
+          </div>
+        `;
+      } 
+      else if (tabName === "appointments") {
+        let appRows = "";
+        appointments.forEach(app => {
+          appRows += `
+            <tr>
+              <td><strong>${app.patientName}</strong></td>
+              <td>${app.doctorName}</td>
+              <td>${app.date} at ${app.time}</td>
+              <td>${app.reason}</td>
+              <td><span class="badge ${app.status.toLowerCase()}">${app.status}</span></td>
+            </tr>
+          `;
+        });
+
+        document.getElementById("panel-appointments").innerHTML = `
+          <div class="card">
+            <h2>System-wide Appointments History</h2>
+            <div class="table-container" style="margin-top: 16px;">
+              ${appointments.length > 0 ? `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Patient Name</th>
+                      <th>Assigned Doctor</th>
+                      <th>Schedule Slot</th>
+                      <th>Reason</th>
+                      <th>Status Badge</th>
+                    </tr>
+                  </thead>
+                  <tbody>${appRows}</tbody>
+                </table>
+              ` : `<p style="color: var(--text-muted); font-style: italic;">No appointments registered.</p>`}
+            </div>
+          </div>
+        `;
+      } 
+      else if (tabName === "sos") {
+        let sosRows = "";
+        sosRequests.forEach(sos => {
+          sosRows += `
+            <tr>
+              <td><strong>${sos.patientName}</strong></td>
+              <td>${sos.phone}</td>
+              <td>${sos.location}</td>
+              <td>${sos.time}</td>
+              <td>${sos.details || "No details provided"}</td>
+              <td>
+                <span class="badge ${sos.status === "Dispatched" ? "pending" : "completed"}" style="background: ${sos.status === 'Dispatched' ? 'var(--danger-light)' : 'var(--success-light)'}; color: ${sos.status === 'Dispatched' ? 'var(--danger)' : 'var(--success)'};">
+                  ${sos.status}
+                </span>
+              </td>
+              <td>
+                ${sos.status === "Dispatched" ? `
+                  <button onclick="resolveSOS(${sos.id})" class="btn btn-success" style="padding: 4px 10px; font-size: 0.8rem; margin-top: 0; cursor: pointer;">Mark Resolved</button>
+                ` : `<span style="font-size: 0.85rem; color: var(--text-muted);">Cleared</span>`}
+              </td>
+            </tr>
+          `;
+        });
+
+        document.getElementById("panel-sos").innerHTML = `
+          <div class="card">
+            <h2>SOS Ambulance Dispatch logs</h2>
+            <p class="section-subtitle" style="text-align: left; margin: 0 0 24px 0;">Manage incoming emergency location alerts from patients. Dispatch station controls.</p>
+            <div class="table-container">
+              ${sosRequests.length > 0 ? `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Patient Name</th>
+                      <th>Phone Contact</th>
+                      <th>Coordinates/Location</th>
+                      <th>Alert Time</th>
+                      <th>Emergency Reason</th>
+                      <th>Status Badge</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>${sosRows}</tbody>
+                </table>
+              ` : `<p style="color: var(--text-muted); font-style: italic;">No SOS emergency alarms registered.</p>`}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Admin commands
+    function createNewDoctor(e) {
+      e.preventDefault();
+      const name = document.getElementById("new-doc-name").value;
+      const spec = document.getElementById("new-doc-spec").value;
+      const exp = document.getElementById("new-doc-exp").value;
+      const fee = document.getElementById("new-doc-fee").value;
+      const email = document.getElementById("new-doc-email").value;
+      const pass = document.getElementById("new-doc-pass").value;
+      const img = document.getElementById("new-doc-img").value;
+
+      const doctors = db.getDoctors();
+      const newId = doctors.length > 0 ? Math.max(...doctors.map(d => d.id)) + 1 : 1;
+      const newDoc = {
+        id: newId,
+        name,
+        specialization: spec,
+        experience: parseInt(exp) || 1,
+        fee: parseInt(fee) || 100,
+        email,
+        rating: 5.0,
+        availability: { Monday: true, Tuesday: true, Wednesday: true, Thursday: true, Friday: true, Saturday: false, Sunday: false },
+        image: img || "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200"
+      };
+
+      doctors.push(newDoc);
+      db.setDoctors(doctors);
+
+      // Add user account
+      const users = db.getUsers();
+      users.push({
+        email,
+        password: pass,
+        name,
+        role: "doctor",
+        doctorId: newId
+      });
+      db.setUsers(users);
+
+      const successBox = document.getElementById("add-doc-success");
+      successBox.textContent = "Doctor added successfully!";
+      successBox.style.display = "block";
+
+      // Reset
+      document.getElementById("add-doctor-form").reset();
+      setTimeout(() => successBox.style.display = "none", 3000);
+
+      renderTabContent("doctors");
+    }
+
+    function removeDoctor(id) {
+      const doctorsList = db.getDoctors();
+      const doc = doctorsList.find(d => d.id === id);
+      const filteredDocs = doctorsList.filter(d => d.id !== id);
+      db.setDoctors(filteredDocs);
+
+      if (doc) {
+        const usersList = db.getUsers().filter(u => u.email !== doc.email);
+        db.setUsers(usersList);
+      }
+      renderTabContent("doctors");
+    }
+
+    function toggleSuspend(email) {
+      const usersList = db.getUsers();
+      const u = usersList.find(user => user.email === email);
+      if (u) {
+        u.suspended = !u.suspended;
+        db.setUsers(usersList);
+        renderTabContent("patients");
+      }
+    }
+
+    function resolveSOS(id) {
+      const sosList = db.getSOS();
+      const alert = sosList.find(s => s.id === id);
+      if (alert) {
+        alert.status = "Resolved";
+        db.setSOS(sosList);
+        renderTabContent("sos");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      currentUser = db.getCurrentUser();
+      if (!currentUser || currentUser.role !== "admin") {
+        window.location.href = "login.html";
+        return;
+      }
+
+      switchTab("analytics");
+    });
+  </script>
+</body>
+</html>

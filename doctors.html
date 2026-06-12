@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediCare+ | Find Clinical Doctors</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="animate-fade-in">
+
+  <!-- Navbar Hook -->
+  <div id="navbar-container"></div>
+
+  <div class="container">
+    <h2 class="section-title">Consult Certified Doctors</h2>
+    <p class="section-subtitle">Search, filter, and schedule appointments with top medical specialists.</p>
+
+    <!-- Filters -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 30px; display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 16px; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px; background: var(--background); padding: 10px; border-radius: var(--radius-sm);">
+        <span>🔍</span>
+        <input
+          id="filter-search"
+          type="text"
+          placeholder="Search by doctor name..."
+          style="border: none; background: transparent; width: 100%; outline: none; margin: 0;"
+        />
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; background: var(--background); padding: 10px; border-radius: var(--radius-sm);">
+        <span>📁</span>
+        <select id="filter-spec" style="border: none; background: transparent; width: 100%; outline: none; cursor: pointer;">
+          <option value="">All Specialties</option>
+          <option value="Cardiologist">Cardiology</option>
+          <option value="Dermatologist">Dermatology</option>
+          <option value="Neurologist">Neurology</option>
+          <option value="Pediatrician">Pediatrician</option>
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; background: var(--background); padding: 10px; border-radius: var(--radius-sm);">
+        <span>Max Fee: ₹</span>
+        <input
+          id="filter-fee"
+          type="number"
+          placeholder="e.g. 600"
+          style="border: none; background: transparent; width: 100%; outline: none; margin: 0;"
+        />
+      </div>
+    </div>
+
+    <!-- Doctor Grid -->
+    <div id="doctors-grid" class="grid"></div>
+  </div>
+
+  <!-- Footer Hook -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Set active nav link
+      const navDoc = document.getElementById("nav-doctors");
+      if (navDoc) navDoc.classList.add("active");
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchInput = document.getElementById("filter-search");
+      const specSelect = document.getElementById("filter-spec");
+      const feeInput = document.getElementById("filter-fee");
+
+      // Set initial values from URL params
+      searchInput.value = urlParams.get("search") || "";
+      specSelect.value = urlParams.get("spec") || "";
+      feeInput.value = urlParams.get("fee") || "";
+
+      function renderDoctors() {
+        const doctors = db.getDoctors();
+        const grid = document.getElementById("doctors-grid");
+        grid.innerHTML = "";
+
+        const valSearch = searchInput.value.toLowerCase();
+        const valSpec = specSelect.value;
+        const valFee = feeInput.value ? parseInt(feeInput.value) : null;
+
+        const filtered = doctors.filter(doc => {
+          const matchesSearch = doc.name.toLowerCase().includes(valSearch);
+          const matchesSpec = !valSpec || doc.specialization === valSpec;
+          const matchesFee = !valFee || doc.fee <= valFee;
+          return matchesSearch && matchesSpec && matchesFee;
+        });
+
+        if (filtered.length > 0) {
+          filtered.forEach(doc => {
+            const card = document.createElement("div");
+            card.className = "card doctor-card animate-fade-in";
+            card.innerHTML = `
+              <div class="doctor-card-rating">
+                ⭐ <span>${doc.rating.toFixed(1)}</span>
+              </div>
+              <img src="${doc.image}" alt="${doc.name}" class="doctor-card-img" />
+              <div class="doctor-card-spec">${doc.specialization}</div>
+              <h3>${doc.name}</h3>
+              <div class="doctor-card-detail" style="display: flex; gap: 10px; align-items: center;">
+                <span>💼 ${doc.experience} Yrs</span>
+                <span style="color: var(--border);">|</span>
+                <span>🩺 Certified</span>
+              </div>
+              <div class="doctor-card-fee">₹${doc.fee} <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">/ Session</span></div>
+              <a href="book.html?id=${doc.id}" style="width: 100%; margin-top: auto;">
+                <button class="btn btn-primary" style="width: 100%; margin-top: 0;">Book Appointment</button>
+              </a>
+            `;
+            grid.appendChild(card);
+          });
+        } else {
+          grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 60px; background: var(--card-bg); border-radius: var(--radius-lg); border: 1px solid var(--border);">
+              <h3>No Doctors Found</h3>
+              <p style="color: var(--text-muted); margin-top: 8px;">Try adjusting your search queries or filter selections.</p>
+            </div>
+          `;
+        }
+      }
+
+      // Bind triggers
+      searchInput.addEventListener("input", renderDoctors);
+      specSelect.addEventListener("change", renderDoctors);
+      feeInput.addEventListener("input", renderDoctors);
+
+      renderDoctors();
+    });
+  </script>
+</body>
+</html>

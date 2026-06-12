@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediCare+ | Login Secure Portal</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="animate-fade-in">
+
+  <!-- Navbar Hook -->
+  <div id="navbar-container"></div>
+
+  <div class="container" style="display: flex; justify-content: center;">
+    <div class="auth-container">
+      <div class="auth-header">
+        <h2>Welcome Back</h2>
+        <p>Login to your secure health portal</p>
+      </div>
+
+      <div id="error-alert" class="alert-box danger" style="display: none;"></div>
+      <div id="success-alert" class="alert-box success" style="display: none;"></div>
+
+      <div class="auth-role-tabs">
+        <div id="tab-patient" class="auth-role-tab active" onclick="setRole('patient')">👤 Patient</div>
+        <div id="tab-doctor" class="auth-role-tab" onclick="setRole('doctor')">🩺 Doctor</div>
+        <div id="tab-admin" class="auth-role-tab" onclick="setRole('admin')">🛡️ Admin</div>
+      </div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input
+            id="login-email"
+            type="email"
+            class="form-control"
+            placeholder="e.g. jane@example.com"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input
+            id="login-password"
+            type="password"
+            class="form-control"
+            placeholder="••••••••"
+            required
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; margin-top: 10px;">
+          Sign In
+        </button>
+      </form>
+
+      <p id="reg-link-container" style="text-align: center; marginTop: 20px; font-size: 0.9rem; color: var(--text-muted); margin-top: 20px;">
+        Don't have an account? <a href="register.html" style="color: var(--primary); font-weight: 600;">Register Here</a>
+      </p>
+
+      <div style="margin-top: 24px; padding: 12px; background: var(--background); borderRadius: var(--radius-sm); font-size: 0.8rem; color: var(--text-muted); border-radius: 6px;">
+        <strong>Demo credentials for testing:</strong>
+        <ul style="padding-left: 16px; margin-top: 6px;">
+          <li><strong>Patient:</strong> patient@medicare.com / password</li>
+          <li><strong>Doctor:</strong> john.smith@medicare.com / password</li>
+          <li><strong>Admin:</strong> admin@medicare.com / password</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Hook -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script>
+    let activeRole = "patient";
+
+    function setRole(role) {
+      activeRole = role;
+      document.querySelectorAll(".auth-role-tab").forEach(tab => tab.classList.remove("active"));
+      document.getElementById(`tab-${role}`).classList.add("active");
+      
+      const regLink = document.getElementById("reg-link-container");
+      if (role === "patient") {
+        regLink.style.display = "block";
+      } else {
+        regLink.style.display = "none";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // If already logged in, redirect
+      const current = db.getCurrentUser();
+      if (current) {
+        if (current.role === "patient") window.location.href = "patient.html";
+        else if (current.role === "doctor") window.location.href = "doctor.html";
+        else if (current.role === "admin") window.location.href = "admin.html";
+      }
+
+      const form = document.getElementById("login-form");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = document.getElementById("login-email").value;
+        const password = document.getElementById("login-password").value;
+
+        const errAlert = document.getElementById("error-alert");
+        const succAlert = document.getElementById("success-alert");
+        errAlert.style.display = "none";
+        succAlert.style.display = "none";
+
+        const users = db.getUsers();
+        const user = users.find(
+          (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password && u.role === activeRole
+        );
+
+        if (user) {
+          if (user.suspended) {
+            errAlert.textContent = "Your account is temporarily suspended. Contact support.";
+            errAlert.style.display = "block";
+            return;
+          }
+          db.setCurrentUser(user);
+          succAlert.textContent = "Login successful! Redirecting...";
+          succAlert.style.display = "block";
+
+          setTimeout(() => {
+            if (activeRole === "patient") window.location.href = "patient.html";
+            else if (activeRole === "doctor") window.location.href = "doctor.html";
+            else if (activeRole === "admin") window.location.href = "admin.html";
+          }, 800);
+        } else {
+          errAlert.textContent = "Invalid email, password, or role selector.";
+          errAlert.style.display = "block";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

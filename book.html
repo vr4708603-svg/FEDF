@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediCare+ | Schedule Consultation</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="animate-fade-in">
+
+  <!-- Navbar Hook -->
+  <div id="navbar-container"></div>
+
+  <div class="container" style="display: flex; justify-content: center;">
+    <div id="book-card-container" class="card" style="width: 100%; max-width: 600px;">
+      <!-- Content will load dynamically -->
+    </div>
+  </div>
+
+  <!-- Footer Hook -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const docId = parseInt(urlParams.get("id"));
+
+      const container = document.getElementById("book-card-container");
+      const doctors = db.getDoctors();
+      const currentUser = db.getCurrentUser();
+
+      const doctor = doctors.find(d => d.id === docId);
+
+      if (!doctor) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 40px;">
+            <h2>Doctor Not Found</h2>
+            <p>The doctor you are looking for does not exist in our catalog.</p>
+            <a href="doctors.html" class="btn btn-primary" style="margin-top: 20px;">Back to Doctors</a>
+          </div>
+        `;
+        return;
+      }
+
+      if (!currentUser) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 40px;">
+            <h2>Authentication Required</h2>
+            <p style="color: var(--text-muted); margin: 16px 0;">
+              You must be logged in as a patient to schedule an appointment.
+            </p>
+            <a href="login.html" class="btn btn-primary" style="width: 100%; color: white;">Log In to Continue</a>
+          </div>
+        `;
+        return;
+      }
+
+      // Load family members
+      const familyList = db.getFamily().filter(f => f.patientEmail === currentUser.email);
+      let familyOptions = `<option value="Self">Self (${currentUser.name})</option>`;
+      familyList.forEach(fam => {
+        familyOptions += `<option value="${fam.name} (${fam.relation})">${fam.name} (${fam.relation})</option>`;
+      });
+
+      // Get min date (today)
+      const minDate = new Date().toISOString().split("T")[0];
+
+      container.innerHTML = `
+        <h2 style="margin-bottom: 8px;">Schedule Consultation</h2>
+        <p style="color: var(--text-muted); margin-bottom: 24px;">
+          Booking appointment with <strong>${doctor.name}</strong> (${doctor.specialization})
+        </p>
+
+        <div id="error-alert" class="alert-box danger" style="display: none;"></div>
+        <div id="success-alert" class="alert-box success" style="display: none;"></div>
+
+        <form id="booking-form">
+          <div class="form-group">
+            <label>👤 Select Patient</label>
+            <select id="book-patient" class="form-control">
+              ${familyOptions}
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label>📅 Appointment Date *</label>
+              <input
+                id="book-date"
+                type="date"
+                class="form-control"
+                min="${minDate}"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label>🕒 Preferred Time Slot *</label>
+              <select id="book-time" class="form-control">
+                <option value="09:00">09:00 AM</option>
+                <option value="10:00">10:00 AM</option>
+                <option value="10:30">10:30 AM</option>
+                <option value="11:00">11:00 AM</option>
+                <option value="11:30">11:30 AM</option>
+                <option value="14:00">02:00 PM</option>
+                <option value="14:30">02:30 PM</option>
+                <option value="15:00">03:00 PM</option>
+                <option value="15:30">03:30 PM</option>
+                <option value="16:00">04:00 PM</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>📝 Symptoms / Reason for Visit</label>
+            <textarea
+              id="book-reason"
+              class="form-control"
+              placeholder="e.g. Regular health examination, high blood pressure checkup, stomach discomfort..."
+              style="height: 100px; resize: none;"
+            ></textarea>
+          </div>
+
+          <div style="padding: 16px; background: var(--background); border-radius: var(--radius-md); margin-bottom: 20px; font-size: 0.9rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span>Consultation Fee:</span>
+              <strong style="margin-left: auto;">₹${doctor.fee}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Location:</span>
+              <strong style="margin-left: auto;">Medicare Health Center / Virtual Call</strong>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">
+            Confirm Consultation Appointment
+          </button>
+        </form>
+      `;
+
+      // Form submit binding
+      const form = document.getElementById("booking-form");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const patientVal = document.getElementById("book-patient").value;
+        const dateVal = document.getElementById("book-date").value;
+        const timeVal = document.getElementById("book-time").value;
+        const reasonVal = document.getElementById("book-reason").value;
+
+        const errAlert = document.getElementById("error-alert");
+        const succAlert = document.getElementById("success-alert");
+        errAlert.style.display = "none";
+        succAlert.style.display = "none";
+
+        if (!dateVal) {
+          errAlert.textContent = "Please select a date.";
+          errAlert.style.display = "block";
+          return;
+        }
+
+        const patientName = patientVal === "Self" ? currentUser.name : patientVal;
+        const newApp = {
+          id: Date.now(),
+          doctorId: doctor.id,
+          doctorName: doctor.name,
+          patientName,
+          patientEmail: currentUser.email,
+          date: dateVal,
+          time: timeVal,
+          reason: reasonVal,
+          relationship: patientVal === "Self" ? "Self" : "Family",
+          status: "Pending",
+          prescription: null
+        };
+
+        const appointments = db.getAppointments();
+        appointments.unshift(newApp);
+        db.setAppointments(appointments);
+
+        succAlert.textContent = `Appointment booked successfully with ${doctor.name}! Redirecting...`;
+        succAlert.style.display = "block";
+
+        setTimeout(() => {
+          window.location.href = "patient.html";
+        }, 1500);
+      });
+    });
+  </script>
+</body>
+</html>

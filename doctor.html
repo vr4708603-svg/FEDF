@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediCare+ | Doctor Portal</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="animate-fade-in">
+
+  <!-- Navbar Hook -->
+  <div id="navbar-container"></div>
+
+  <div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="dashboard-sidebar">
+      <div class="dashboard-sidebar-profile">
+        <img id="doc-avatar" src="" alt="Doctor Photo" class="profile-avatar-img" />
+        <h3 id="doc-name" style="font-size: 1.1rem;">Dr. John Smith</h3>
+        <p id="doc-spec" style="font-size: 0.8rem; color: var(--text-muted);">Cardiologist</p>
+        <span class="profile-role-tag">Doctor Portal</span>
+      </div>
+
+      <nav class="dashboard-nav">
+        <button class="dashboard-nav-item active" onclick="switchTab('appointments')">📅 Bookings</button>
+        <button class="dashboard-nav-item" onclick="switchTab('availability')">🕒 Availability Slot</button>
+        <button class="dashboard-nav-item" onclick="switchTab('patients')">🏥 Patient Records</button>
+        <button class="dashboard-nav-item" onclick="switchTab('analytics')">📊 Analytics</button>
+      </nav>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="dashboard-content">
+      <div id="panel-appointments" class="tab-panel"></div>
+      <div id="panel-availability" class="tab-panel" style="display: none;"></div>
+      <div id="panel-patients" class="tab-panel" style="display: none;"></div>
+      <div id="panel-analytics" class="tab-panel" style="display: none;"></div>
+    </main>
+  </div>
+
+  <!-- Virtual Consultation Room Modal -->
+  <div id="room-modal" class="modal-overlay" style="display: none; padding: 0;">
+    <div class="modal-card" style="max-width: 100%; width: 100vw; height: 100vh; border-radius: 0; display: grid; grid-template-rows: 60px 1fr;">
+      <div class="modal-header" style="background-color: #0f172a; border-bottom: 1px solid #1e293b; padding: 0 24px;">
+        <h3 id="room-modal-title" style="color: white;">Medicare Virtual Consultation</h3>
+        <button id="end-room-btn" class="btn btn-danger" style="padding: 6px 16px; font-size: 0.85rem; margin-top: 0; cursor: pointer;">
+          End Session Room
+        </button>
+      </div>
+
+      <div class="consultation-grid" style="height: 100%; padding: 20px; background: #0b0f19;">
+        <!-- Left Feed -->
+        <div class="video-screen" style="flex-direction: column;">
+          <div class="mock-video-feed">
+            <div class="profile-avatar" style="width: 90px; height: 90px; font-size: 2.5rem; margin: 0 auto 16px auto;">👤</div>
+            <h3 id="room-patient-name">Patient Name</h3>
+            <p style="font-size: 0.9rem; color: #94a3b8; marginTop: 6px;">Virtual Connection Active (Consultation Room)</p>
+          </div>
+          <div id="room-my-video" class="my-video-feed">Doctor (You)</div>
+          <div class="video-controls">
+            <button class="video-btn">🎙️</button>
+            <button class="video-btn">📹</button>
+            <button class="video-btn active" id="control-room-end">📞</button>
+          </div>
+        </div>
+
+        <!-- Right prescription form -->
+        <div class="prescription-pad" style="display: flex; flex-direction: column; height: 100%;">
+          <h3 style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+            Clinical Session Pad
+          </h3>
+
+          <div id="room-patient-reason" style="padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 16px; font-size: 0.85rem;">
+            <strong>Patient Reason:</strong> Headache
+          </div>
+
+          <form id="prescription-form" onsubmit="completeConsultation(event)" style="display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto;">
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label>Clinical Diagnosis *</label>
+              <input id="pres-diagnosis" type="text" class="form-control" placeholder="e.g. Acute Bronchitis / Muscle Spasm" required />
+            </div>
+
+            <!-- Medicines section -->
+            <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; background: var(--background);">
+              <label style="font-weight: 600; font-size: 0.85rem;">Prescription Medicines</label>
+              <div style="display: flex; gap: 6px; marginTop: 8px; margin-bottom: 12px;">
+                <input id="med-name" type="text" placeholder="Medicine name" class="form-control" style="margin: 0;" />
+                <input id="med-dosage" type="text" placeholder="Dosage" class="form-control" style="margin: 0; width: 120px;" />
+                <input id="med-duration" type="text" placeholder="Duration" class="form-control" style="margin: 0; width: 100px;" />
+                <button type="button" onclick="addMedicationRow()" class="btn btn-primary" style="padding: 10px 14px; margin-top: 0;">+</button>
+              </div>
+
+              <table id="prescription-meds-table" style="background: white; border-radius: var(--radius-sm); overflow: hidden; display: none;">
+                <thead>
+                  <tr>
+                    <th style="padding: 6px;">Name</th>
+                    <th style="padding: 6px;">Dosage</th>
+                    <th style="padding: 6px;">Duration</th>
+                    <th style="padding: 6px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="prescription-meds-body">
+                  <!-- table rows -->
+                </tbody>
+              </table>
+            </div>
+
+            <button type="submit" class="btn btn-success" style="width: 100%; padding: 12px; margin-top: auto;">
+              Save Prescription & Complete Visit
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Hook -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script>
+    let activeTab = "appointments";
+    let currentUser = null;
+    let myDoctor = null;
+    let activeApp = null;
+    let tempMedsList = [];
+
+    function switchTab(tabName) {
+      activeTab = tabName;
+      document.querySelectorAll(".dashboard-nav-item").forEach((btn, idx) => {
+        const tabs = ["appointments", "availability", "patients", "analytics"];
+        if (tabs[idx] === tabName) btn.classList.add("active");
+        else btn.classList.remove("active");
+      });
+
+      document.querySelectorAll(".tab-panel").forEach(panel => {
+        panel.style.display = "none";
+      });
+      document.getElementById(`panel-${tabName}`).style.display = "block";
+      renderTabContent(tabName);
+    }
+
+    function renderTabContent(tabName) {
+      if (!myDoctor) return;
+
+      const allApps = db.getAppointments();
+      const myApps = allApps.filter(a => a.doctorId === myDoctor.id);
+      const pendingApps = myApps.filter(a => a.status === "Pending");
+      const approvedApps = myApps.filter(a => a.status === "Approved");
+      const completedApps = myApps.filter(a => a.status === "Completed");
+
+      if (tabName === "appointments") {
+        let pendingListItems = "";
+        pendingApps.forEach(app => {
+          pendingListItems += `
+            <div class="app-item">
+              <div class="app-info">
+                <h4>Patient: ${app.patientName}</h4>
+                <p>Symptom: ${app.reason}</p>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+                  Slot Requested: <strong>${app.date}</strong> at <strong>${app.time}</strong>
+                </p>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button onclick="setStatus(${app.id}, 'Rejected')" class="btn btn-outline" style="color: var(--danger); border-color: var(--danger); padding: 8px 16px; margin-top: 0;">Decline</button>
+                <button onclick="setStatus(${app.id}, 'Approved')" class="btn btn-primary" style="padding: 8px 16px; margin-top: 0;">Accept</button>
+              </div>
+            </div>
+          `;
+        });
+
+        let approvedListItems = "";
+        approvedApps.forEach(app => {
+          approvedListItems += `
+            <div class="app-item">
+              <div class="app-info">
+                <h4>Patient: ${app.patientName}</h4>
+                <p>Consultation Reason: ${app.reason}</p>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+                  Schedule: <strong>${app.date}</strong> at <strong>${app.time}</strong>
+                </p>
+              </div>
+              <button onclick="openRoom(${app.id})" class="btn btn-success" style="padding: 8px 16px; margin-top: 0;">Start Virtual Consult</button>
+            </div>
+          `;
+        });
+
+        let completedListItems = "";
+        completedApps.forEach(app => {
+          let rxRows = "";
+          if (app.prescription) {
+            app.prescription.medicines.forEach(m => {
+              rxRows += `
+                <tr>
+                  <td style="padding: 8px; font-size: 0.85rem;">${m.name}</td>
+                  <td style="padding: 8px; font-size: 0.85rem;">${m.dosage}</td>
+                  <td style="padding: 8px; font-size: 0.85rem;">${m.duration}</td>
+                </tr>
+              `;
+            });
+          }
+
+          completedListItems += `
+            <div class="app-item" style="flex-direction: column; align-items: stretch;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <h4>Patient: ${app.patientName}</h4>
+                  <p style="font-size: 0.85rem; color: var(--text-muted);">Consulted on ${app.date} at ${app.time}</p>
+                </div>
+                <span class="badge completed">Completed</span>
+              </div>
+              ${app.prescription ? `
+                <div style="margin-top: 16px; padding: 16px; background: var(--background); border-radius: var(--radius-md); border: 1px solid var(--border);">
+                  <strong>Diagnosis:</strong> ${app.prescription.diagnosis}
+                  <table style="margin-top: 10px; background: white; border-radius: var(--radius-sm); overflow: hidden; width: 100%;">
+                    <thead>
+                      <tr>
+                        <th style="padding: 8px; background: var(--background);">Medicine</th>
+                        <th style="padding: 8px; background: var(--background);">Dosage</th>
+                        <th style="padding: 8px; background: var(--background);">Duration</th>
+                      </tr>
+                    </thead>
+                    <tbody>${rxRows}</tbody>
+                  </table>
+                </div>
+              ` : ""}
+            </div>
+          `;
+        });
+
+        document.getElementById("panel-appointments").innerHTML = `
+          <h2 style="margin-bottom: 20px;">Consultation Bookings Management</h2>
+          <div class="metrics-row">
+            <div class="metric-card">
+              <div class="metric-icon-box">📅</div>
+              <div>
+                <div class="metric-val">${pendingApps.length}</div>
+                <div class="metric-title">Pending Requests</div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon-box success">📹</div>
+              <div>
+                <div class="metric-val">${approvedApps.length}</div>
+                <div class="metric-title">Active Consultations</div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon-box success">💰</div>
+              <div>
+                <div class="metric-val">₹${completedApps.length * myDoctor.fee}</div>
+                <div class="metric-title">Portal Earnings</div>
+              </div>
+            </div>
+          </div>
+
+          <h3 style="margin-bottom: 16px;">Pending Appointment Requests (${pendingApps.length})</h3>
+          <div class="app-list" style="margin-bottom: 40px;">${pendingListItems || `<p style="color: var(--text-muted); font-style: italic; margin-bottom: 40px;">No pending requests.</p>`}</div>
+
+          <h3 style="margin-bottom: 16px;">Upcoming Active Consultations (${approvedApps.length})</h3>
+          <div class="app-list" style="margin-bottom: 40px;">${approvedListItems || `<p style="color: var(--text-muted); font-style: italic; margin-bottom: 40px;">No approved consultations scheduled.</p>`}</div>
+
+          <h3 style="margin-bottom: 16px;">Consultation History (${completedApps.length})</h3>
+          <div class="app-list">${completedListItems || `<p style="color: var(--text-muted); font-style: italic;">No consults completed yet.</p>`}</div>
+        `;
+      } 
+      else if (tabName === "availability") {
+        let availabilityRows = "";
+        Object.keys(myDoctor.availability).forEach(day => {
+          const isAvail = myDoctor.availability[day];
+          availabilityRows += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--background); border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 12px;">
+              <strong style="font-size: 1.1rem;">${day}</strong>
+              <button onclick="toggleAvailability('${day}')" class="btn ${isAvail ? 'btn-success' : 'btn-outline'}" style="padding: 8px 24px; min-width: 120px; margin-top: 0;">
+                ${isAvail ? "Available" : "Unavailable"}
+              </button>
+            </div>
+          `;
+        });
+
+        document.getElementById("panel-availability").innerHTML = `
+          <div class="card" style="max-width: 600px;">
+            <h2 style="margin-bottom: 12px;">Availability & Schedule Slots</h2>
+            <p style="color: var(--text-muted); margin-bottom: 24px;">Toggle the days you are available to consult patient bookings. Patients will only see your card open on these days.</p>
+            <div style="display: flex; flex-direction: column;">${availabilityRows}</div>
+          </div>
+        `;
+      } 
+      else if (tabName === "patients") {
+        const patientEmails = [...new Set(myApps.map(a => a.patientEmail))];
+        const allUsers = db.getUsers();
+        const myPatients = allUsers.filter(u => patientEmails.includes(u.email));
+        const allReports = db.getReports();
+
+        let patientCards = "";
+        myPatients.forEach(pat => {
+          let conds = "";
+          pat.history.forEach(h => {
+            conds += `<span class="badge pending" style="text-transform: none; font-size: 0.7rem; padding: 2px 6px; margin-right: 4px; margin-bottom: 4px;">${h}</span>`;
+          });
+
+          const patReports = allReports.filter(r => r.patientEmail === pat.email);
+          let fileListHtml = "";
+          patReports.forEach(rep => {
+            fileListHtml += `<div style="font-size: 0.8rem; color: var(--primary); margin-bottom: 4px;">📄 ${rep.name} (${rep.size})</div>`;
+          });
+
+          patientCards += `
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <h3>${pat.name}</h3>
+                <span class="badge approved" style="height: fit-content;">Score: ${pat.healthScore}</span>
+              </div>
+              <p style="font-size: 0.9rem;"><strong>Age:</strong> ${pat.age} Yrs | <strong>Gender:</strong> ${pat.gender}</p>
+              <p style="font-size: 0.9rem;"><strong>Blood:</strong> ${pat.bloodGroup} | <strong>Phone:</strong> ${pat.phone}</p>
+              <div style="margin-top: 12px;">
+                <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Conditions:</span>
+                <div style="display: flex; flex-wrap: wrap;">${conds || `<span style="font-style: italic; font-size: 0.8rem; color: var(--text-muted);">None</span>`}</div>
+              </div>
+              ${fileListHtml ? `
+                <div style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
+                  <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Uploaded Files:</span>
+                  ${fileListHtml}
+                </div>
+              ` : ""}
+            </div>
+          `;
+        });
+
+        document.getElementById("panel-patients").innerHTML = `
+          <h2 style="margin-bottom: 20px;">Your Patient Records Directory</h2>
+          <div class="grid">${patientCards || `<p style="color: var(--text-muted); font-style: italic;">No consultations records logged yet.</p>`}</div>
+        `;
+      } 
+      else if (tabName === "analytics") {
+        document.getElementById("panel-analytics").innerHTML = `
+          <div class="card">
+            <h2 style="margin-bottom: 24px;">Practice Performance Dashboard</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+              <div>
+                <h3>Monthly Consult Growth</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9rem;">
+                      <span>April 2026</span>
+                      <strong>8 Consults</strong>
+                    </div>
+                    <div style="height: 12px; background: var(--background); border-radius: 6px; overflow: hidden;">
+                      <div style="width: 40%; height: 100%; background: var(--primary);"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9rem;">
+                      <span>May 2026</span>
+                      <strong>14 Consults</strong>
+                    </div>
+                    <div style="height: 12px; background: var(--background); border-radius: 6px; overflow: hidden;">
+                      <div style="width: 70%; height: 100%; background: var(--primary);"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9rem;">
+                      <span>June 2026 (Current)</span>
+                      <strong>${myApps.length} Consults</strong>
+                    </div>
+                    <div style="height: 12px; background: var(--background); border-radius: 6px; overflow: hidden;">
+                      <div style="width: ${Math.min(myApps.length * 8, 100)}%; height: 100%; background: var(--success);"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3>Revenue Earnings Breakdown</h3>
+                <div style="background: var(--background); padding: 24px; border-radius: var(--radius-lg); border: 1px solid var(--border); margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Clinical Consultation Rate:</span>
+                    <strong>₹${myDoctor.fee}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Settled Bookings:</span>
+                    <strong>${completedApps.length}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 10px;">
+                    <span>Total Net Revenue:</span>
+                    <strong style="font-size: 1.2rem; color: var(--success);">₹${completedApps.length * myDoctor.fee}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Portals functions
+    function setStatus(appId, status) {
+      const apps = db.getAppointments();
+      const app = apps.find(a => a.id === appId);
+      if (app) {
+        app.status = status;
+        db.setAppointments(apps);
+        renderTabContent("appointments");
+      }
+    }
+
+    function toggleAvailability(day) {
+      const doctorsList = db.getDoctors();
+      const doc = doctorsList.find(d => d.id === myDoctor.id);
+      if (doc) {
+        doc.availability[day] = !doc.availability[day];
+        db.setDoctors(doctorsList);
+        myDoctor = doc;
+        renderTabContent("availability");
+      }
+    }
+
+    // Modal consultation room
+    function openRoom(appId) {
+      const apps = db.getAppointments();
+      activeApp = apps.find(a => a.id === appId);
+      if (!activeApp) return;
+
+      tempMedsList = [];
+      document.getElementById("room-patient-name").textContent = activeApp.patientName;
+      document.getElementById("room-modal-title").textContent = `Medicare Virtual Consultation - Patient: ${activeApp.patientName}`;
+      document.getElementById("room-patient-reason").innerHTML = `<strong>Patient Reason:</strong> ${activeApp.reason}`;
+      
+      document.getElementById("pres-diagnosis").value = "";
+      document.getElementById("prescription-meds-table").style.display = "none";
+      document.getElementById("prescription-meds-body").innerHTML = "";
+
+      document.getElementById("room-modal").style.display = "flex";
+    }
+
+    function addMedicationRow() {
+      const mNameInput = document.getElementById("med-name");
+      const mDosageInput = document.getElementById("med-dosage");
+      const mDurInput = document.getElementById("med-duration");
+
+      const name = mNameInput.value.trim();
+      const dosage = mDosageInput.value.trim() || "1 tablet daily";
+      const duration = mDurInput.value.trim() || "5 days";
+
+      if (!name) return;
+
+      tempMedsList.push({ name, dosage, duration });
+      mNameInput.value = "";
+      mDosageInput.value = "";
+      mDurInput.value = "";
+
+      // Render table
+      const tbody = document.getElementById("prescription-meds-body");
+      tbody.innerHTML = "";
+      tempMedsList.forEach((med, i) => {
+        tbody.innerHTML += `
+          <tr>
+            <td style="padding: 6px; font-size: 0.8rem;">${med.name}</td>
+            <td style="padding: 6px; font-size: 0.8rem;">${med.dosage}</td>
+            <td style="padding: 6px; font-size: 0.8rem;">${med.duration}</td>
+            <td style="padding: 6px; font-size: 0.8rem;">
+              <button type="button" onclick="removeTempMed(${i})" style="background:transparent; border:none; color:var(--danger); cursor:pointer;">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+      document.getElementById("prescription-meds-table").style.display = "table";
+    }
+
+    function removeTempMed(idx) {
+      tempMedsList.splice(idx, 1);
+      const tbody = document.getElementById("prescription-meds-body");
+      tbody.innerHTML = "";
+      tempMedsList.forEach((med, i) => {
+        tbody.innerHTML += `
+          <tr>
+            <td style="padding: 6px; font-size: 0.8rem;">${med.name}</td>
+            <td style="padding: 6px; font-size: 0.8rem;">${med.dosage}</td>
+            <td style="padding: 6px; font-size: 0.8rem;">${med.duration}</td>
+            <td style="padding: 6px; font-size: 0.8rem;">
+              <button type="button" onclick="removeTempMed(${i})" style="background:transparent; border:none; color:var(--danger); cursor:pointer;">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+      if (tempMedsList.length === 0) {
+        document.getElementById("prescription-meds-table").style.display = "none";
+      }
+    }
+
+    function completeConsultation(e) {
+      e.preventDefault();
+      const diagnosis = document.getElementById("pres-diagnosis").value.trim();
+      if (!diagnosis) return;
+
+      const allApps = db.getAppointments();
+      const idx = allApps.findIndex(a => a.id === activeApp.id);
+      if (idx !== -1) {
+        allApps[idx].status = "Completed";
+        allApps[idx].prescription = {
+          diagnosis,
+          medicines: tempMedsList
+        };
+        db.setAppointments(allApps);
+      }
+
+      document.getElementById("room-modal").style.display = "none";
+      activeApp = null;
+      renderTabContent("appointments");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      currentUser = db.getCurrentUser();
+      if (!currentUser || currentUser.role !== "doctor") {
+        window.location.href = "login.html";
+        return;
+      }
+
+      const doctorsList = db.getDoctors();
+      myDoctor = doctorsList.find(d => d.email === currentUser.email);
+      if (!myDoctor) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      document.getElementById("doc-avatar").src = myDoctor.image;
+      document.getElementById("doc-name").textContent = myDoctor.name;
+      document.getElementById("doc-spec").textContent = myDoctor.specialization;
+
+      switchTab("appointments");
+
+      // Bind close room
+      const closeRoom = () => {
+        document.getElementById("room-modal").style.display = "none";
+        activeApp = null;
+      };
+
+      document.getElementById("end-room-btn").addEventListener("click", closeRoom);
+      document.getElementById("control-room-end").addEventListener("click", closeRoom);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediCare+ | Secure Appointment Booking System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="animate-fade-in">
+
+  <!-- Navbar Hook -->
+  <div id="navbar-container"></div>
+
+  <div class="container">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div>
+        <h1 class="hero-title">Your Health,<br>Our Ultimate Priority</h1>
+        <p class="hero-subtitle">
+          Instantly consult top-rated doctors online, book in-person clinic visits, manage family health records, and access critical SOS emergency care.
+        </p>
+
+        <form id="hero-search-form" class="search-container">
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Search doctors by name..."
+          />
+          <select id="spec-select" style="border: none; background: transparent; color: var(--text-muted); font-weight: 500; outline: none; margin-right: 10px; cursor: pointer;">
+            <option value="">All Specialties</option>
+            <option value="Cardiologist">Cardiology</option>
+            <option value="Dermatologist">Dermatology</option>
+            <option value="Neurologist">Neurology</option>
+            <option value="Pediatrician">Pediatrician</option>
+          </select>
+          <button type="submit" class="btn btn-primary">
+            🔍 Search
+          </button>
+        </form>
+
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px;">
+          <span style="font-size: 0.9rem; color: var(--text-muted); align-self: center;">Popular:</span>
+          <a href="doctors.html?spec=Cardiologist" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem; border-radius: 20px;">Cardiologist</a>
+          <a href="doctors.html?spec=Dermatologist" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem; border-radius: 20px;">Dermatologist</a>
+          <a href="doctors.html?spec=Neurologist" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem; border-radius: 20px;">Neurologist</a>
+          <a href="doctors.html?spec=Pediatrician" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem; border-radius: 20px;">Pediatrician</a>
+        </div>
+      </div>
+
+      <div class="hero-img-container">
+        <img
+          src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=600"
+          alt="Doctor Consulting Patient"
+          class="hero-img"
+        />
+        <div class="hero-img-overlay">
+          <div class="profile-avatar" style="margin-bottom: 0;">👨‍⚕️</div>
+          <div>
+            <h4 style="font-size: 0.95rem;">24/7 Digital Clinics</h4>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Doctors are available right now.</p>
+          </div>
+          <a href="doctors.html" class="btn btn-primary" style="margin-left: auto; padding: 6px 12px; font-size: 0.8rem; color: white;">
+            Consult Now
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Bar -->
+    <section class="stats-bar">
+      <div class="stat-item">
+        <div id="stat-doctors" class="stat-number">6+</div>
+        <div class="stat-label">Certified Doctors</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">10k+</div>
+        <div class="stat-label">Happy Patients</div>
+      </div>
+      <div id="stat-appointments" class="stat-item">
+        <div id="stat-apps-val" class="stat-number">2</div>
+        <div class="stat-label">Total Appointments</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">99.9%</div>
+        <div class="stat-label">SOS Response Rate</div>
+      </div>
+    </section>
+
+    <!-- SOS Banner -->
+    <section class="sos-banner">
+      <div class="sos-content">
+        <h2>🚨 Medical Emergency?</h2>
+        <p style="margin-top: 8px;">
+          Trigger our instant SOS protocol. We will immediately identify your location and dispatch the nearest hospital ambulance service.
+        </p>
+      </div>
+      <button id="sos-trigger-btn" class="btn btn-sos">
+        Trigger Emergency SOS
+      </button>
+    </section>
+
+    <!-- Specialties -->
+    <section style="margin-bottom: 60px;">
+      <h2 class="section-title">Specialized Care Directories</h2>
+      <p class="section-subtitle">Navigate doctor directories by medical specialties to locate exactly what you need.</p>
+      <div class="spec-grid">
+        <div class="spec-card" onclick="window.location.href='doctors.html?spec=Cardiologist'">
+          <div class="spec-icon" style="color: var(--primary);">❤️</div>
+          <h3 class="spec-name" style="font-size: 1.1rem;">Cardiologist</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Heart & Vascular Care</p>
+        </div>
+        <div class="spec-card" onclick="window.location.href='doctors.html?spec=Dermatologist'">
+          <div class="spec-icon" style="color: var(--primary);">🔬</div>
+          <h3 class="spec-name" style="font-size: 1.1rem;">Dermatologist</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Skin, Hair & Nail Care</p>
+        </div>
+        <div class="spec-card" onclick="window.location.href='doctors.html?spec=Neurologist'">
+          <div class="spec-icon" style="color: var(--primary);">🧠</div>
+          <h3 class="spec-name" style="font-size: 1.1rem;">Neurologist</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Brain & Nervous System</p>
+        </div>
+        <div class="spec-card" onclick="window.location.href='doctors.html?spec=Pediatrician'">
+          <div class="spec-icon" style="color: var(--primary);">👶</div>
+          <h3 class="spec-name" style="font-size: 1.1rem;">Pediatrician</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Infant & Child Health</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI Health Assistant Preview -->
+    <section style="margin-bottom: 60px;">
+      <h2 class="section-title">AI Smart Symptom Guide</h2>
+      <p class="section-subtitle">Unsure which medical professional to see? Describe your symptoms below for instant suggestions.</p>
+      <div class="ai-assistant-container">
+        <div class="ai-assistant-header">
+          <span style="font-size: 1.5rem; display: inline-block; vertical-align: middle;">🤖</span>
+          <div style="display: inline-block; margin-left: 8px; vertical-align: middle;">
+            <h3>MediCare+ AI Health Assistant</h3>
+            <p style="font-size: 0.75rem; opacity: 0.9;">Automated Symptom Screener (Simulated)</p>
+          </div>
+        </div>
+        <div id="ai-chat-box" class="ai-assistant-chat">
+          <div class="ai-message ai">
+            Hello! I am your AI Health Assistant. Tell me about your symptoms or medical questions, and I can suggest what kind of doctor you should see.
+          </div>
+        </div>
+        <form id="ai-chat-form" class="ai-assistant-input">
+          <input
+            id="ai-chat-input"
+            type="text"
+            placeholder="e.g. I have a skin rash, I have been feeling chest pain..."
+            required
+          />
+          <button type="submit" class="btn btn-primary">
+            Send
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section style="margin-bottom: 60px;">
+      <h2 class="section-title">What Patients Say</h2>
+      <p class="section-subtitle">Real feedback from patients who booked and consulted using Medicare+.</p>
+      <div class="grid">
+        <div class="card">
+          <div style="color: var(--warning); margin-bottom: 12px;">⭐⭐⭐⭐⭐</div>
+          <p style="font-style: italic; font-size: 0.95rem;">
+            "Booking was seamless. I scheduled an appointment with Dr. John Smith for chest tightness, and he confirmed it within minutes. The video call portal was extremely convenient."
+          </p>
+          <h4 style="margin-top: 16px; font-size: 1rem;">- Sarah Jenkins</h4>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Cardiac Patient</span>
+        </div>
+
+        <div class="card">
+          <div style="color: var(--warning); margin-bottom: 12px;">⭐⭐⭐⭐⭐</div>
+          <p style="font-style: italic; font-size: 0.95rem;">
+            "My kid caught a high fever late at night. We used the AI assistant, which suggested seeing Dr. Emily Taylor. We booked online, got prescriptions, and tracked her health in one dashboard."
+          </p>
+          <h4 style="margin-top: 16px; font-size: 1rem;">- Robert Chen</h4>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Parent of Tommy</span>
+        </div>
+
+        <div class="card">
+          <div style="color: var(--warning); margin-bottom: 12px;">⭐⭐⭐⭐⭐</div>
+          <p style="font-style: italic; font-size: 0.95rem;">
+            "I uploaded my allergy reports directly to the patient documents tab. When I entered the consult, Dr. Sarah Lee had already reviewed them. Truly a 5-star digital health experience!"
+          </p>
+          <h4 style="margin-top: 16px; font-size: 1rem;">- Jane Doe</h4>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Eczema Patient</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mobile App Download -->
+    <section class="card" style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 40px; padding: 40px; border-radius: 20px;">
+      <div style="display: flex; align-items: center; justify-content: center; font-size: 6rem; color: var(--primary);">
+        📱
+      </div>
+      <div style="display: flex; flex-direction: column; justify-content: center;">
+        <h2 style="font-size: 1.8rem; margin-bottom: 12px;">Download the MediCare+ Mobile App</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          Get pill reminders, live tracking of your family's vaccination dates, and access to instant emergency calls right in your pocket. Available for iOS and Android.
+        </p>
+        <div style="display: flex; gap: 12px;">
+          <button class="btn btn-primary">App Store</button>
+          <button class="btn btn-outline">Google Play</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- SOS Modal Overlay -->
+  <div id="sos-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header" style="background-color: var(--danger); color: white;">
+        <h3 style="color: white;">Emergency Dispatch SOS</h3>
+        <button id="close-sos-btn" style="background: transparent; border: none; color: white; fontSize: 1.2rem; font-weight: bold; cursor: pointer;">X</button>
+      </div>
+      <form id="sos-form">
+        <div id="sos-modal-body" class="modal-body">
+          <p style="margin-bottom: 16px; font-size: 0.9rem;">
+            Entering details will transmit your location to the emergency dispatch desk immediately.
+          </p>
+          <div class="form-group">
+            <label>Your Current Location *</label>
+            <input
+              id="sos-location"
+              type="text"
+              class="form-control"
+              placeholder="e.g. Sector 5, Block A, Room 302..."
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Nature of Medical Emergency (Optional)</label>
+            <textarea
+              id="sos-details"
+              class="form-control"
+              placeholder="e.g. Unconscious patient, asthma attack, chest pain..."
+              style="height: 80px; resize: none;"
+            ></textarea>
+          </div>
+        </div>
+        <div id="sos-modal-footer" class="modal-footer">
+          <button type="button" id="cancel-sos-btn" class="btn btn-outline">Cancel</button>
+          <button type="submit" class="btn btn-danger">Confirm Dispatch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer Hook -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Set active nav link
+      const navHome = document.getElementById("nav-home");
+      if (navHome) navHome.classList.add("active");
+
+      // Load live stats
+      document.getElementById("stat-doctors").textContent = db.getDoctors().length + "+";
+      document.getElementById("stat-apps-val").textContent = db.getAppointments().length;
+
+      // Bind search submission
+      document.getElementById("hero-search-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const search = document.getElementById("search-input").value;
+        const spec = document.getElementById("spec-select").value;
+        window.location.href = `doctors.html?search=${encodeURIComponent(search)}&spec=${encodeURIComponent(spec)}`;
+      });
+
+      // SOS Modal handlers
+      const sosModal = document.getElementById("sos-modal");
+      const openSos = document.getElementById("sos-trigger-btn");
+      const closeSos = document.getElementById("close-sos-btn");
+      const cancelSos = document.getElementById("cancel-sos-btn");
+      const sosForm = document.getElementById("sos-form");
+
+      openSos.addEventListener("click", () => {
+        sosModal.style.display = "flex";
+      });
+
+      const closeModal = () => {
+        sosModal.style.display = "none";
+        // Reset modal content in case alert was shown
+        document.getElementById("sos-modal-body").innerHTML = `
+          <p style="margin-bottom: 16px; font-size: 0.9rem;">
+            Entering details will transmit your location to the emergency dispatch desk immediately.
+          </p>
+          <div class="form-group">
+            <label>Your Current Location *</label>
+            <input id="sos-location" type="text" class="form-control" placeholder="e.g. Sector 5, Block A, Room 302..." required />
+          </div>
+          <div class="form-group">
+            <label>Nature of Medical Emergency (Optional)</label>
+            <textarea id="sos-details" class="form-control" placeholder="e.g. Unconscious patient, asthma attack, chest pain..." style="height: 80px; resize: none;"></textarea>
+          </div>
+        `;
+        document.getElementById("sos-modal-footer").style.display = "flex";
+      };
+
+      closeSos.addEventListener("click", closeModal);
+      cancelSos.addEventListener("click", closeModal);
+
+      sosForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const loc = document.getElementById("sos-location").value;
+        const details = document.getElementById("sos-details").value;
+        
+        const currentUser = db.getCurrentUser();
+        const newSOS = {
+          id: Date.now(),
+          patientName: currentUser ? currentUser.name : "Anonymous Patient",
+          phone: currentUser ? currentUser.phone : "+1 (555) 911-0000",
+          location: loc,
+          time: new Date().toISOString().replace("T", " ").substring(0, 16),
+          status: "Dispatched",
+          details
+        };
+
+        const sosList = db.getSOS();
+        sosList.unshift(newSOS);
+        db.setSOS(sosList);
+
+        // Show dispatch notice
+        document.getElementById("sos-modal-body").innerHTML = `
+          <div class="alert-box danger" style="margin: 0; display: flex; flex-direction: column; gap: 10px; text-align: center; width: 100%;">
+            <h4 style="color: var(--danger)">🚨 SOS TRIGGERED 🚨</h4>
+            <p style="font-size: 0.9rem">
+              We have broadcasted your alert. Nearest dispatch station has been alerted. Stay calm, help is on the way.
+            </p>
+          </div>
+        `;
+        document.getElementById("sos-modal-footer").style.display = "none";
+
+        setTimeout(closeModal, 5000);
+      });
+
+      // AI Chatbot
+      const chatForm = document.getElementById("ai-chat-form");
+      chatForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const chatInput = document.getElementById("ai-chat-input");
+        const query = chatInput.value.trim().toLowerCase();
+        if (!query) return;
+
+        const chatBox = document.getElementById("ai-chat-box");
+        
+        // Append user msg
+        const userDiv = document.createElement("div");
+        userDiv.className = "ai-message user";
+        userDiv.textContent = chatInput.value.trim();
+        chatBox.appendChild(userDiv);
+        chatInput.value = "";
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // Smart reply
+        setTimeout(() => {
+          let aiResponse = "I understand. While I cannot diagnose conditions, I recommend discussing this with a general practitioner.";
+          
+          if (query.includes("heart") || query.includes("chest") || query.includes("breath") || query.includes("cardiac")) {
+            aiResponse = "⚠️ Warning: Chest or heart-related symptoms can be critical. We recommend booking a priority appointment with our Cardiologist, Dr. John Smith, immediately. If this is an acute emergency, please use our SOS Banner to dispatch emergency services.";
+          } else if (query.includes("skin") || query.includes("rash") || query.includes("itch") || query.includes("eczema") || query.includes("spots")) {
+            aiResponse = "This sounds like it could be a dermatological concern. We suggest consulting with our Dermatology specialist, Dr. Sarah Lee.";
+          } else if (query.includes("brain") || query.includes("headache") || query.includes("dizzy") || query.includes("neurology") || query.includes("numb")) {
+            aiResponse = "For headache, dizziness, or nerve concerns, we advise scheduling an evaluation with our Neurologist, Dr. David Wilson.";
+          } else if (query.includes("child") || query.includes("baby") || query.includes("kid") || query.includes("pediatric")) {
+            aiResponse = "For infant, toddler, or child health concerns, please book a consultation with our experienced Pediatrician, Dr. Emily Taylor.";
+          } else if (query.includes("fever") || query.includes("cold") || query.includes("cough") || query.includes("flu")) {
+            aiResponse = "Common cold and flu symptoms are best evaluated by a primary care doctor. You can look at our list of doctors to find an available consultation slot.";
+          }
+
+          const aiDiv = document.createElement("div");
+          aiDiv.className = "ai-message ai";
+          aiDiv.textContent = aiResponse;
+          chatBox.appendChild(aiDiv);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }, 600);
+      });
+    });
+  </script>
+</body>
+</html>
